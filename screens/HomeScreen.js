@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { ThemeContext } from '../theme/ThemeContext';
 
 export default function HomeScreen() {
+  const { theme } = useContext(ThemeContext);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Bienvenido a la App de Conteo de Personas</Text>
-      <Text>Puedes ir a la pestaña de cámara para iniciar la detección.</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.text }]}>
+        Bienvenido a la App de Conteo de Personas
+      </Text>
+      <Text style={{ color: theme.text }}>
+        Puedes ir a la pestaña de cámara para iniciar la detección.
+      </Text>
     </View>
   );
 }
