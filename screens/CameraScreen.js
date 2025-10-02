@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState('back');
+  const [flash, setFlash] = useState('off'); 
   const [menuVisible, setMenuVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const [personCount, setPersonCount] = useState(4); 
@@ -30,12 +31,16 @@ export default function CameraScreen() {
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
   }
 
+  function toggleFlash() {
+    setFlash((current) => (current === 'off' ? 'on' : 'off'));
+  }
+
   return (
     <View style={styles.container}>
-      {/*  */}
-      <CameraView style={StyleSheet.absoluteFill} facing={facing} />
+      {/* Cámara */}
+      <CameraView style={StyleSheet.absoluteFill} facing={facing} flash={flash} />
 
-      {/* */}
+      {/* Botón Volver */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.navigate('Inicio')}
@@ -43,7 +48,7 @@ export default function CameraScreen() {
         <Ionicons name="arrow-back" size={24} color="white" />
       </TouchableOpacity>
 
-      {/* */}
+      {/* Botón Menú */}
       <TouchableOpacity
         style={styles.menuToggle}
         onPress={() => setMenuVisible(!menuVisible)}
@@ -51,7 +56,7 @@ export default function CameraScreen() {
         <Text style={styles.menuToggleText}>☰</Text>
       </TouchableOpacity>
 
-      {/* Menú  */}
+      {/* Menú desplegable */}
       {menuVisible && (
         <View style={styles.dropdownMenu}>
           <TouchableOpacity
@@ -70,9 +75,18 @@ export default function CameraScreen() {
         </View>
       )}
 
-      {/* conteo */}
+      {/* Botón Flash */}
+      <TouchableOpacity style={styles.flashButton} onPress={toggleFlash}>
+        <Ionicons
+          name={flash === 'off' ? 'flash-off' : 'flash'}
+          size={24}
+          color="white"
+        />
+      </TouchableOpacity>
+
+      {/* Conteo lateral */}
       <View style={styles.countContainer}>
-        <Text style={styles.countText}>Hay 0 personas</Text>
+        <Text style={styles.countText}>Hay {personCount} personas</Text>
       </View>
     </View>
   );
@@ -126,10 +140,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
+  flashButton: {
+    position: 'absolute',
+    top: 100,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
+    borderRadius: 20,
+  },
 
   countContainer: {
     position: 'absolute',
-    left: -50, 
+    left: -50,
     top: '40%',
     transform: [{ rotate: '-90deg' }],
   },
@@ -139,4 +161,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
