@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Animated } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState('back');
   const [menuVisible, setMenuVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const [personCount, setPersonCount] = useState(4); 
   const navigation = useNavigation();
 
   if (!permission) {
@@ -30,10 +32,18 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Cámara */}
+      {/*  */}
       <CameraView style={StyleSheet.absoluteFill} facing={facing} />
 
-      {/* Botón del menú */}
+      {/* */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.navigate('Inicio')}
+      >
+        <Ionicons name="arrow-back" size={24} color="white" />
+      </TouchableOpacity>
+
+      {/* */}
       <TouchableOpacity
         style={styles.menuToggle}
         onPress={() => setMenuVisible(!menuVisible)}
@@ -41,33 +51,35 @@ export default function CameraScreen() {
         <Text style={styles.menuToggleText}>☰</Text>
       </TouchableOpacity>
 
-      {/* Menú desplegable */}
+      {/* Menú  */}
       {menuVisible && (
         <View style={styles.dropdownMenu}>
           <TouchableOpacity
             onPress={() => {
-              setMenuVisible(false); // Cierra el menú
-              navigation.navigate('Inicio'); // Navega al inicio
+              setMenuVisible(false);
+              navigation.navigate('Inicio');
             }}
             style={styles.menuItem}
           >
             <Text style={styles.menuItemText}>Volver</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={toggleCameraFacing}
-            style={styles.menuItem}
-          >
+          <TouchableOpacity onPress={toggleCameraFacing} style={styles.menuItem}>
             <Text style={styles.menuItemText}>Cambiar Cámara</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* conteo */}
+      <View style={styles.countContainer}>
+        <Text style={styles.countText}>Hay 0 personas</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: 'black' },
   message: { textAlign: 'center', paddingBottom: 10 },
   permissionButton: {
     backgroundColor: '#007AFF',
@@ -76,6 +88,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   permissionText: { color: '#fff', fontSize: 16 },
+
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
+    borderRadius: 20,
+  },
 
   menuToggle: {
     position: 'absolute',
@@ -104,4 +125,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
+
+
+  countContainer: {
+    position: 'absolute',
+    left: -50, 
+    top: '40%',
+    transform: [{ rotate: '-90deg' }],
+  },
+  countText: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
 });
+
