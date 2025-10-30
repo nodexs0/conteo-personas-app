@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from './screens/HomeScreen';
 import CameraScreen from './screens/CameraScreen';
 import ConfigScreen from './screens/ConfigScreen';
+import HistoryScreen from './screens/HistoryScreen';
+
 
 import { ThemeProvider, ThemeContext } from './theme/ThemeContext';
 
@@ -26,9 +28,11 @@ function MyTabs() {
               iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Cámara') {
               iconName = focused ? 'camera' : 'camera-outline';
+            } else if (route.name === 'Historial') {
+              iconName = focused ? 'document-text' : 'document-text-outline';
             } else if (route.name === 'Configuración') {
               iconName = focused ? 'settings' : 'settings-outline';
-            }
+            } 
 
             return <Ionicons name={iconName} size={size} color={color} />;
           },
@@ -38,7 +42,12 @@ function MyTabs() {
       >
         <Tab.Screen name="Inicio" component={HomeScreen} />
         <Tab.Screen name="Cámara" component={CameraScreen} options={{ headerShown: false, tabBarStyle: { display: 'none' }, }} />
+        <Tab.Screen name="Historial" component={HistoryScreen} />
         <Tab.Screen name="Configuración" component={ConfigScreen} />
+        
+  
+
+
       </Tab.Navigator>
     </NavigationContainer>
   );
