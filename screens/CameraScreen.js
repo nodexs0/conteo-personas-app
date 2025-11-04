@@ -6,21 +6,30 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState('back');
-  const [flash, setFlash] = useState('off'); 
+  const [flash, setFlash] = useState('off');
   const [menuVisible, setMenuVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
-  const [personCount, setPersonCount] = useState(4); 
+  const [personCount, setPersonCount] = useState(4);
   const navigation = useNavigation();
 
   if (!permission) {
-    return <View><Text>Cargando...</Text></View>;
+    return (
+      <View>
+        <Text>Cargando...</Text>
+      </View>
+    );
   }
 
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Text style={styles.message}>Necesitamos tu permiso para usar la cámara</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+        <Text style={styles.message}>
+          Necesitamos tu permiso para usar la cámara
+        </Text>
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={requestPermission}
+        >
           <Text style={styles.permissionText}>Conceder Permiso</Text>
         </TouchableOpacity>
       </View>
@@ -84,7 +93,7 @@ export default function CameraScreen() {
         />
       </TouchableOpacity>
 
-      {/* Conteo lateral */}
+      {/* Conteo centrado abajo */}
       <View style={styles.countContainer}>
         <Text style={styles.countText}>Hay {personCount} personas</Text>
       </View>
@@ -149,11 +158,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
 
+  // Conteo centrado inferior
   countContainer: {
     position: 'absolute',
-    left: -50,
-    top: '40%',
-    transform: [{ rotate: '-90deg' }],
+    bottom: 40,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
   },
   countText: {
     color: 'white',
