@@ -158,7 +158,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
 
-  // Conteo centrado inferior
   countContainer: {
     position: 'absolute',
     bottom: 40,
