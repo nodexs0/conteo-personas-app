@@ -20,7 +20,7 @@ export default function HomeScreen() {
       >
         {/* Logos */}
         <View style={styles.header}>
-          <Image source={require('../assets/ipnnegro.jpeg')} style={styles.logoSmall} />
+          <Image source={require('../assets/logoipn.png')} style={styles.logoSmall} />
           <Image source={require('../assets/UPIIT.png')} style={styles.logoSmall} />
         </View>
 
@@ -28,7 +28,7 @@ export default function HomeScreen() {
         <View style={styles.card}>
           <Text style={styles.title}>Sistema de Detección y Conteo de Personas</Text>
           <Text style={styles.subtitle}>
-            Visualiza en tiempo real el número de personas detectadas en el video.
+            Visualiza en tiempo real el número de personas detectadas en video.
            
           </Text>
 
