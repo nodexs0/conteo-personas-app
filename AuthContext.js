@@ -8,7 +8,13 @@ WebBrowser.maybeCompleteAuthSession();
 export const AuthContext = createContext();
 
 
-const CLIENT_ID = '603547577917-j53v45295fqlem2qggfl0abm7rtae8rh.apps.googleusercontent.com'; 
+const [request, response, promptAsync] = Google.useAuthRequest({
+  webClientId: "603547577917-j53v45295fqlem2qggfl0abm7rtae8rh.apps.googleusercontent.com",
+  androidClientId: "603547577917-ivi5qjvttcoqrr74mgfpponiompdkije.apps.googleusercontent.com",
+  iosClientId: "TU_IOS_CLIENT_ID.apps.googleusercontent.com",
+  scopes: ["profile", "email"],
+  useProxy: true
+});
 
 const USER_STORAGE_KEY = 'user_data_expo_app';
 
