@@ -12,6 +12,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState('back');
@@ -21,7 +23,7 @@ export default function CameraScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [boxes, setBoxes] = useState([]);
-  const [isDetecting, setIsDetecting] = useState(false); // Estado para control de detección
+  const [isDetecting, setIsDetecting] = useState(false);
 
   const cameraRef = useRef(null);
   const videoRef = useRef(null);
@@ -32,7 +34,7 @@ export default function CameraScreen() {
 
   const isWeb = Platform.OS === 'web';
 
-  // Simula carga de modelo
+  // Esperar que el modelo cargue
   useEffect(() => {
     const timer = setTimeout(() => setIsModelLoading(false), 3000);
     return () => clearTimeout(timer);
@@ -54,21 +56,36 @@ export default function CameraScreen() {
     }
   }, [isWeb]);
 
-  // Maneja la ejecución automática cada 6 segundos
+  // Maneja la detección continua esperando que termine cada ciclo
   useEffect(() => {
-    let interval = null;
+    let isActive = true;
+
+    const startDetectionLoop = async () => {
+      while (isDetecting && isActive) {
+        await detectPersons();
+        // Esperar 2 segundos antes de la siguiente detección
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    };
 
     if (isDetecting) {
-      // Ejecuta inmediatamente al iniciar
-      detectPersons();
-
-      interval = setInterval(() => {
-        detectPersons();
-      }, 6000);
+      startDetectionLoop();
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      isActive = false;
+    };
   }, [isDetecting]);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Cuando la pantalla está enfocada, no hacemos nada especial
+      return () => {
+        // Cuando la pantalla pierde foco, detenemos la detección
+        setIsDetecting(false);
+      };
+    }, [])
+  );
 
   if (!permission && !isWeb) return <View><Text>Cargando...</Text></View>;
 
@@ -122,7 +139,7 @@ export default function CameraScreen() {
       const response = await axios.post('http://192.168.1.68:8000/predict/person', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
+      await new Promise(resolve => setTimeout(resolve, 2000));
       if (response.data?.persons) {
         const persons = response.data.persons;
 
@@ -146,11 +163,16 @@ export default function CameraScreen() {
         setBoxes(convertedBoxes);
         setPersonCount(response.data.person_count);
       } else {
-        Alert.alert('Error', 'No se recibieron datos válidos de la API');
+        console.log('No se recibieron datos de personas del servidor');
+        Alert.alert('Error', 'Error en la detección de personas, inténtalo de nuevo.');
       }
     } catch (err) {
-      console.error('Error detectando personas:', err);
-      Alert.alert('Error', 'No se pudo detectar personas: ' + err.message);
+      console.log('Error detectando personas:', err);
+      if (err.message.includes('Network Error') || err.message.includes('AxiosError')) {
+        console.log('Error de red: Verifica que el servidor esté corriendo y accesible.');
+      } else {
+        Alert.alert('Error', 'No se pudo detectar personas: ' + err.message);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -210,7 +232,7 @@ export default function CameraScreen() {
         style={styles.doorButton}
         onPress={isWeb ? goToDoorDetectionWeb : async () => {
           if (cameraRef.current) {
-            const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, skipProcessing: Platform.OS === 'android', exif: false, });
+            const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, skipProcessing: Platform.OS === 'android', exif: false });
             navigation.navigate('DoorDetection', { photoUri: photo.uri });
           }
         }}

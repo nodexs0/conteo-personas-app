@@ -48,25 +48,35 @@ export default function DoorDetectionScreen() {
       const response = await axios.post("http://192.168.1.68:8000/predict/doors", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (response.data?.doors) {
+        const doors = Array.isArray(response.data?.doors) ? response.data.doors : [];
+        const boxes = doors
+          .map((d) => {
+            let bbox = d.bbox;
+            if (Array.isArray(bbox[0])) bbox = bbox[0];
+            if (!Array.isArray(bbox) || bbox.length < 4) return null;
+            const [xmin, ymin, xmax, ymax] = bbox.map(Number);
+            return { xmin, ymin, xmax, ymax, score: Number(d.score ?? 0), class: Number(d.class ?? -1) };
+          })
+          .filter(Boolean);
 
-      const doors = Array.isArray(response.data?.doors) ? response.data.doors : [];
-      const boxes = doors
-        .map((d) => {
-          let bbox = d.bbox;
-          if (Array.isArray(bbox[0])) bbox = bbox[0];
-          if (!Array.isArray(bbox) || bbox.length < 4) return null;
-          const [xmin, ymin, xmax, ymax] = bbox.map(Number);
-          return { xmin, ymin, xmax, ymax, score: Number(d.score ?? 0), class: Number(d.class ?? -1) };
-        })
-        .filter(Boolean);
-
-      if (boxes.length === 0) {
-        setNoDoorsDetected(true); // marcar que no se detectaron puertas
+        if (boxes.length === 0) {
+          setNoDoorsDetected(true); // marcar que no se detectaron puertas
+        } else {
+          setDoorBoxes(boxes);
+        }
       } else {
-        setDoorBoxes(boxes);
+        console.log("No se recibieron puertas en la respuesta");
+        setNoDoorsDetected(true); // marcar que no se detectaron puertas
       }
     } catch (err) {
-      Alert.alert("Error", "No se pudo detectar puertas: " + (err.message || "Error"));
+      console.log("Error detectando puertas:", err);
+      if (err.message.includes('Network Error') || err.message.includes('AxiosError')) {
+        console.log('Error de red: Verifica que el servidor esté corriendo y accesible.');
+      } else {
+        Alert.alert('Error', 'No se pudo detectar personas: ' + err.message);
+      }
     } finally {
       setIsProcessing(false);
     }

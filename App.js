@@ -10,6 +10,7 @@ import CameraScreen from './screens/CameraScreen';
 import ConfigScreen from './screens/ConfigScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import DoorDetectionScreen from './screens/DoorDetectionScreen';
+import ReportScreen from './screens/Report';
 
 import { ThemeProvider, ThemeContext } from './theme/ThemeContext';
 import { AuthProvider, AuthContext } from './AuthContext';
@@ -73,6 +74,7 @@ function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs" component={MyTabs} />
         <Stack.Screen name="DoorDetection" component={DoorDetectionScreen} />
+        <Stack.Screen name="Reporte" component={ReportScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

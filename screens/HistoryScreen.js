@@ -189,7 +189,7 @@ export default function HistoryScreen() {
   return (
     <LinearGradient colors={gradientColors} style={styles.container}>
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.addButton} onPress={goToCamera}>
+        <TouchableOpacity style={styles.addButton} onPress={createExampleReport}>
           <Text style={styles.buttonText}> Crear reporte</Text>
         </TouchableOpacity>
 
