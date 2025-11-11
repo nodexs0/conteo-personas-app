@@ -7,31 +7,21 @@ WebBrowser.maybeCompleteAuthSession();
 
 export const AuthContext = createContext();
 
-
-const [request, response, promptAsync] = Google.useAuthRequest({
-  webClientId: "603547577917-j53v45295fqlem2qggfl0abm7rtae8rh.apps.googleusercontent.com",
-  androidClientId: "603547577917-ivi5qjvttcoqrr74mgfpponiompdkije.apps.googleusercontent.com",
-  iosClientId: "TU_IOS_CLIENT_ID.apps.googleusercontent.com",
-  scopes: ["profile", "email"],
-  useProxy: true
-});
-
 const USER_STORAGE_KEY = 'user_data_expo_app';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 👇 Aquí SÍ se usa correctamente el hook dentro del componente React
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: CLIENT_ID,
-
-    androidClientId: CLIENT_ID, 
-    scopes: ['profile', 'email'],
-
-    useProxy: true, 
+    webClientId: "603547577917-j53v45295fqlem2qggfl0abm7rtae8rh.apps.googleusercontent.com",
+    androidClientId: "603547577917-ivi5qjvttcoqrr74mgfpponiompdkije.apps.googleusercontent.com",
+    iosClientId: "TU_IOS_CLIENT_ID.apps.googleusercontent.com",
+    scopes: ["profile", "email"],
+    useProxy: true,
   });
 
- 
   useEffect(() => {
     if (response?.type === 'success') {
       const { authentication } = response;
@@ -39,32 +29,26 @@ export const AuthProvider = ({ children }) => {
     }
   }, [response]);
 
-  
   const fetchUserInfo = async (token) => {
     try {
       const infoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const userData = await infoResponse.json();
-      
+
       setUser(userData);
       await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
-      
     } catch (error) {
       console.error('Error fetching user info:', error);
       setUser(null);
     }
   };
 
-
   useEffect(() => {
     const loadUser = async () => {
       try {
         const storedUser = await AsyncStorage.getItem(USER_STORAGE_KEY);
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
+        if (storedUser) setUser(JSON.parse(storedUser));
       } catch (e) {
         console.error('Error loading user from AsyncStorage:', e);
       } finally {
@@ -73,7 +57,6 @@ export const AuthProvider = ({ children }) => {
     };
     loadUser();
   }, []);
-
 
   const signIn = async () => {
     try {
@@ -87,7 +70,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para cerrar sesión
   const signOut = async () => {
     try {
       await AsyncStorage.removeItem(USER_STORAGE_KEY);
