@@ -33,7 +33,7 @@ export default function HomeScreen() {
           </Text>
 
           <LinearGradient
-            colors={['#b02790ff', '#9a1b5dff']}
+            colors={['#651D32', '#651D32']}
             start={[0, 0]}
             end={[1, 0]}
             style={styles.button}

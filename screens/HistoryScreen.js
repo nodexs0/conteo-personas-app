@@ -184,7 +184,7 @@ export default function HistoryScreen() {
   const gradientColors =
     theme.mode === 'dark'
       ? ['#000000', '#1C1C1C', '#2E2E2E']
-      : ['#420420ff', '#aa2477ff', '#832b58ff'];
+      : ['#651D32', '#651D32', '#832b4aff'];
 
   return (
     <LinearGradient colors={gradientColors} style={styles.container}>

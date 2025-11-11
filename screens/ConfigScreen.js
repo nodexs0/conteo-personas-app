@@ -7,7 +7,7 @@ import { useAuth } from '../AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
 
-import fondoConfig from '../assets/fondo-config.jpg';
+import fondoConfig from '../assets/fondo-configu.jpg';
 
 export default function ConfigScreen() {
   const { theme, toggleTheme } = useContext(ThemeContext);
@@ -18,7 +18,7 @@ export default function ConfigScreen() {
   const gradientColors =
     theme.mode === 'dark'
       ? ['#000000df', '#1C1C1Cdf', '#2E2E2Edf'] 
-      : ['#420420cd', '#aa2477cd', '#832b5bcd']; 
+      : ['#651D32', '#651D32', '#832b4aff']; 
 
   
   const cardTextColor = theme.mode === 'dark' ? '#fff' : '#222';
@@ -49,12 +49,7 @@ export default function ConfigScreen() {
 
 
   return (
-    <ImageBackground
-      source={fondoConfig}
-      style={styles.container}
-      resizeMode="cover"
-    >
-      {/* Overlay degradado encima de la imagen */}
+   
       <LinearGradient colors={gradientColors} style={styles.overlay}>
         <View style={styles.content}>
           <Text style={[styles.title, { color: theme.text }]}>Configuración</Text>
@@ -111,15 +106,16 @@ export default function ConfigScreen() {
             Personaliza tu experiencia y gestiona tu cuenta
           </Text>
         </View>
-      </LinearGradient>
-    </ImageBackground>
-  );
+      </LinearGradient> );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+  flex: 1,
+   width: '100%',
+  height: '100%',
+ 
+},
   overlay: {
     flex: 1,
     justifyContent: 'center',
