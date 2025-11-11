@@ -8,7 +8,7 @@ WebBrowser.maybeCompleteAuthSession();
 export const AuthContext = createContext();
 
 
-const CLIENT_ID = '71881995759-ehtfvr76kl4lad72gdhbf0tclg1ikuj6.apps.googleusercontent.com'; 
+const CLIENT_ID = '603547577917-j53v45295fqlem2qggfl0abm7rtae8rh.apps.googleusercontent.com'; 
 
 const USER_STORAGE_KEY = 'user_data_expo_app';
 
