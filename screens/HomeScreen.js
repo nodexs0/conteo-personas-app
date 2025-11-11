@@ -21,7 +21,7 @@ export default function HomeScreen() {
         {/* Logos */}
         <View style={styles.header}>
           <Image source={require('../assets/logoipn.png')} style={styles.logoSmall} />
-          <Image source={require('../assets/UPIIT.png')} style={styles.logoSmall} />
+          <Image source={require('../assets/logoupiit.png')} style={styles.logoSmall} />
         </View>
 
         {/* Tarjeta flotante */}
