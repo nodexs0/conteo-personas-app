@@ -12,17 +12,33 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../theme/ThemeContext';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
-// Clave usada para guardar los reportes
 const STORAGE_KEY = '@reports_data';
 
 export default function HistoryScreen() {
   const [reports, setReports] = useState([]);
   const { theme } = useContext(ThemeContext);
+  const navigation = useNavigation();
+  const route = useRoute();
+
   useEffect(() => {
     loadReports();
-  },
-   []);
+  }, []);
+
+  // Detecta si viene una foto desde CameraScreen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (route.params?.photoUri) {
+        createReportFromPhoto(route.params.photoUri);
+        navigation.setParams({ photoUri: null });
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, route.params?.photoUri]);
+
   const loadReports = async () => {
     try {
       const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
@@ -31,6 +47,7 @@ export default function HistoryScreen() {
       console.error('Error cargando reportes', e);
     }
   };
+
   const saveReports = async (newReports) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newReports));
@@ -38,6 +55,25 @@ export default function HistoryScreen() {
     } catch (e) {
       console.error('Error guardando reportes', e);
     }
+  };
+
+  const goToCamera = () => {
+    navigation.navigate('Cámara');
+  };
+
+  const createReportFromPhoto = async (photoUri) => {
+    const timestamp = new Date().toISOString();
+    const newReport = {
+      id: `rep_${timestamp}`,
+      timestamp,
+      count: Math.floor(Math.random() * 30),
+      confidence: (Math.random() * 0.5 + 0.5).toFixed(2),
+      imageUri: photoUri,
+      status: 'Reporte con foto',
+    };
+    const updatedReports = [newReport, ...reports];
+    await saveReports(updatedReports);
+    Alert.alert('Reporte guardado', 'El reporte con foto se ha creado correctamente.');
   };
 
   const createExampleReport = async () => {
@@ -52,7 +88,7 @@ export default function HistoryScreen() {
     };
     const updatedReports = [newReport, ...reports];
     await saveReports(updatedReports);
-    Alert.alert('Reporte creado', 'Se ha guardado un reporte de ejemplo.');
+    Alert.alert('Reporte de ejemplo creado');
   };
 
   const clearReports = async () => {
@@ -64,6 +100,21 @@ export default function HistoryScreen() {
         onPress: async () => {
           await AsyncStorage.removeItem(STORAGE_KEY);
           setReports([]);
+        },
+      },
+    ]);
+  };
+
+  // 🧨 Eliminar reporte individual
+  const deleteReport = async (id) => {
+    Alert.alert('Eliminar reporte', '¿Deseas eliminar este reporte?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          const updatedReports = reports.filter((r) => r.id !== id);
+          await saveReports(updatedReports);
         },
       },
     ]);
@@ -85,40 +136,51 @@ export default function HistoryScreen() {
         },
       ]}
     >
-      <Image
-        source={
-          item.imageName === 'reporte1.jpg'
-            ? require('../assets/reporte1.jpg')
-            : null
-        }
-        style={styles.image}
-      />
-      <View style={styles.info}>
-        <Text
-          style={[
-            styles.title,
-            { color: theme.mode === 'dark' ? '#fff' : '#222' },
-          ]}
-        >
-          Reporte ID: {item.id}
-        </Text>
-        <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
-          Fecha: {new Date(item.timestamp).toLocaleString()}
-        </Text>
-        <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
-          Personas detectadas: {item.count}
-        </Text>
-        <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
-          Confianza: {item.confidence}
-        </Text>
-        <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
-          Estado: {item.status}
-        </Text>
-      </View>
+      {/* Ícono para eliminar */}
+      <TouchableOpacity
+        style={styles.deleteIcon}
+        onPress={() => deleteReport(item.id)}
+      >
+        <Ionicons name="trash-outline" size={22} color="#d9534f" />
+      </TouchableOpacity>
+
+      {/* Contenido del card */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Reporte', { report: item })}
+        activeOpacity={0.8}
+        style={{ flexDirection: 'row', flex: 1 }}
+      >
+        <Image
+          source={
+            item.imageUri
+              ? { uri: item.imageUri }
+              : require('../assets/reporte1.jpg')
+          }
+          style={styles.image}
+        />
+        <View style={styles.info}>
+          <Text
+            style={[
+              styles.title,
+              { color: theme.mode === 'dark' ? '#fff' : '#222' },
+            ]}
+          >
+            Reporte ID: {item.id}
+          </Text>
+          <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
+            Fecha: {new Date(item.timestamp).toLocaleString()}
+          </Text>
+          <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
+            Personas detectadas: {item.count}
+          </Text>
+          <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
+            Descripción: {item.status}
+          </Text>
+        </View>
+      </TouchableOpacity>
     </View>
   );
 
-  // Colores de fondo según modo
   const gradientColors =
     theme.mode === 'dark'
       ? ['#000000', '#1C1C1C', '#2E2E2E']
@@ -127,16 +189,22 @@ export default function HistoryScreen() {
   return (
     <LinearGradient colors={gradientColors} style={styles.container}>
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.addButton} onPress={createExampleReport}>
-          <Text style={styles.buttonText}>Crear reporte</Text>
+        <TouchableOpacity style={styles.addButton} onPress={goToCamera}>
+          <Text style={styles.buttonText}> Crear reporte</Text>
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.clearButton} onPress={clearReports}>
-          <Text style={styles.buttonText}>Limpiar</Text>
+          <Text style={styles.buttonText}> Limpiar</Text>
         </TouchableOpacity>
       </View>
 
       {reports.length === 0 ? (
-        <Text style={[styles.emptyText, { color: theme.mode === 'dark' ? '#ccc' : '#fff' }]}>
+        <Text
+          style={[
+            styles.emptyText,
+            { color: theme.mode === 'dark' ? '#ccc' : '#fff' },
+          ]}
+        >
           No hay reportes registrados aún.
         </Text>
       ) : (
@@ -160,7 +228,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     flex: 1,
-    backgroundColor: '#24aa2dff', // guinda/morado app
+    backgroundColor: '#24aa2dff',
     padding: 14,
     borderRadius: 20,
     marginRight: 7,
@@ -172,7 +240,7 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     flex: 1,
-    backgroundColor: '#bb2e2eff', // azul oscuro
+    backgroundColor: '#bb2e2eff',
     padding: 14,
     borderRadius: 20,
     marginLeft: 7,
@@ -184,20 +252,25 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   card: {
-    flexDirection: 'row',
     padding: 15,
     borderRadius: 20,
     marginBottom: 12,
-    flex: 1,
     borderWidth: 1,
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
+    position: 'relative',
+  },
+  deleteIcon: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 2,
+    padding: 5,
   },
   image: { width: 80, height: 80, borderRadius: 10, marginRight: 12 },
-  info: { flex: 1 },
+  info: { flex: 1, justifyContent: 'center' },
   title: { fontWeight: 'bold', fontSize: 15, marginBottom: 4 },
   emptyText: { textAlign: 'center', marginTop: 40, fontSize: 16 },
   list: { paddingBottom: 30 },
