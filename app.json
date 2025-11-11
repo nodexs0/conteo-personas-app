@@ -2,6 +2,7 @@
   "expo": {
     "name": "conteo-personas-app",
     "slug": "conteo-personas-app",
+    "scheme": "conteo-personas-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -27,6 +28,11 @@
     },
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "TU_PROJECT_ID_DE_EAS" 
+      }
+    }
   }
 }
