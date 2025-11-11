@@ -3,7 +3,6 @@ import React, { useContext } from 'react';
 import { View, Text, Switch, StyleSheet, ImageBackground, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../theme/ThemeContext';
-// CORRECCIÓN CLAVE: Volvemos a la importación nombrada
 import { useAuth } from '../AuthContext'; 
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,7 +11,7 @@ import fondoConfig from '../assets/fondo-config.jpg';
 
 export default function ConfigScreen() {
   const { theme, toggleTheme } = useContext(ThemeContext);
-  // Obtenemos el estado de usuario y las funciones de inicio/cierre de sesión
+  
   const { user, signIn, signOut } = useAuth();
 
 
@@ -21,17 +20,17 @@ export default function ConfigScreen() {
       ? ['#000000df', '#1C1C1Cdf', '#2E2E2Edf'] 
       : ['#420420cd', '#aa2477cd', '#832b5bcd']; 
 
-  // Estilo del texto dinámico
+  
   const cardTextColor = theme.mode === 'dark' ? '#fff' : '#222';
   
-  // Estilo de la tarjeta glassmorphism
+  
   const cardStyle = {
     backgroundColor: theme.mode === 'dark' ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.80)',
     borderColor: theme.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.35)',
   };
 
 
-  // Componente para la Tarjeta de Opción (reutilizable)
+  
   const OptionCard = ({ children, onPress, iconName, buttonColor = '#e91e63' }) => (
     <TouchableOpacity 
       style={[styles.card, cardStyle]} 
@@ -73,12 +72,12 @@ export default function ConfigScreen() {
           
           {/* Tarjeta de Autenticación */}
           {user ? (
-            // Si el usuario está logueado, muestra su info y botón de cerrar sesión
+            
             <View style={[styles.userInfoCard, cardStyle]}>
                 <Image 
                     source={{ uri: user.picture }} 
                     style={styles.profilePicture} 
-                    // Esto es solo para evitar un warning, idealmente esta imagen siempre viene de Google
+                    
                     onError={() => console.log('Error al cargar la imagen de perfil')} 
                 />
                 <View style={styles.userInfoText}>
@@ -97,7 +96,7 @@ export default function ConfigScreen() {
             </View>
 
           ) : (
-            // Si el usuario NO está logueado, muestra el botón de iniciar sesión
+          
             <OptionCard onPress={signIn} iconName="logo-google" buttonColor="#DB4437">
               Iniciar Sesión con Google
             </OptionCard>
@@ -168,7 +167,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
   },
-  // Estilos específicos para la tarjeta de información del usuario
+
   userInfoCard: {
     width: '85%',
     borderRadius: 25,
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   signOutButton: {
-    backgroundColor: '#ff5c5c', // Rojo suave para el botón de salir
+    backgroundColor: '#ff5c5c', 
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 15,

@@ -4,32 +4,27 @@ import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Necesario para la autenticación web en Expo.
 WebBrowser.maybeCompleteAuthSession();
 
-// 1. Exportación Nombrada
+
 export const AuthContext = createContext();
 
-// *******************************************************************
-// IMPORTANTE: REEMPLAZA ESTE VALOR con tu Client ID de Aplicación Web
-// obtenido de Google Cloud Console.
-// *******************************************************************
-const WEB_CLIENT_ID = '71881995759-ehtfvr76kl4lad72gdhbf0tclg1ikuj6.apps.googleusercontent.com'; // <-- ¡AQUÍ VA TU ID REAL!
+
+const WEB_CLIENT_ID = '71881995759-ehtfvr76kl4lad72gdhbf0tclg1ikuj6.apps.googleusercontent.com'; 
 
 const USER_STORAGE_KEY = 'user_data_expo_app';
 
-// 2. Exportación Nombrada
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Hook de Expo para iniciar el flujo de Google OAuth
+
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: WEB_CLIENT_ID,
     scopes: ['profile', 'email'],
   });
 
-  // Manejo de la respuesta de autenticación
   useEffect(() => {
     if (response?.type === 'success') {
       const { authentication } = response;
@@ -37,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [response]);
 
-  // Función para obtener la información del usuario usando el token de acceso
+
   const fetchUserInfo = async (token) => {
     try {
       const infoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
@@ -55,7 +50,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Cargar el usuario desde el almacenamiento al iniciar la aplicación
+
   useEffect(() => {
     const loadUser = async () => {
       try {
@@ -72,7 +67,6 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  // Función para iniciar sesión (llama a promptAsync, que abre el navegador)
   const signIn = async () => {
     try {
       if (!request) {
@@ -85,7 +79,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para cerrar sesión
+
   const signOut = async () => {
     try {
       await AsyncStorage.removeItem(USER_STORAGE_KEY);
@@ -95,7 +89,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Exportamos los valores del contexto
+
   return (
     <AuthContext.Provider value={{ user, signIn, signOut, isLoading }}>
       {children}
@@ -103,5 +97,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// 3. Exportación Nombrada
+
 export const useAuth = () => useContext(AuthContext); 

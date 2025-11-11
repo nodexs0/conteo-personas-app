@@ -11,7 +11,6 @@ import HistoryScreen from './screens/HistoryScreen';
 
 
 import { ThemeProvider, ThemeContext } from './theme/ThemeContext';
-// CORRECCIÓN CLAVE: Importamos AuthProvider y AuthContext como exportaciones nombradas.
 import { AuthProvider, AuthContext } from './AuthContext'; 
 
 
@@ -19,11 +18,8 @@ const Tab = createBottomTabNavigator();
 
 function MyTabs() {
   const { theme } = useContext(ThemeContext);
-  // Obtenemos el estado de carga del AuthContext para mostrar el spinner inicial
-  // Esto ahora funciona porque AuthContext está importado de forma nombrada y correcta.
   const { isLoading } = useContext(AuthContext); 
 
-  // Muestra un indicador de carga mientras se verifica el estado de autenticación
   if (isLoading) {
     const backgroundColor = theme.mode === 'dark' ? DarkTheme.colors.background : DefaultTheme.colors.background;
     return (
