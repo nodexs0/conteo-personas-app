@@ -11,6 +11,8 @@ import HistoryScreen from './screens/HistoryScreen';
 import DoorDetectionScreen from './screens/DoorDetectionScreen';
 import ReportScreen from './screens/Report';
 import CameraScreen from './screens/CameraScreen';
+// Importamos el nuevo Navigator de Autenticación
+import AuthNavigator from './screens/AuthScreen'; 
 
 import { ThemeProvider, ThemeContext } from './theme/ThemeContext';
 import { AuthProvider, AuthContext } from './AuthContext';
@@ -20,10 +22,16 @@ const Stack = createNativeStackNavigator();
 
 // --- Componente 1: Tab Navigator (Pestañas inferiores) ---
 function TabNavigator() {
+  const { theme } = useContext(ThemeContext);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: true,
+        tabBarStyle: { 
+          backgroundColor: theme.colors.card, // Usar color del tema para la barra
+          borderTopColor: theme.colors.border || 'gray',
+        },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
@@ -37,8 +45,9 @@ function TabNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#e91e63',
-        tabBarInactiveTintColor: 'gray',
+        // Aseguramos que los colores de la pestaña se adapten al tema
+        tabBarActiveTintColor: theme.colors.primary || '#e91e63',
+        tabBarInactiveTintColor: theme.colors.text || 'gray',
       })}
     >
       <Tab.Screen name="Inicio" component={HomeScreen} />
@@ -51,35 +60,52 @@ function TabNavigator() {
 // --- Componente 2: Root Navigator (Navegación principal con Stack) ---
 function RootNavigator() {
   const { theme } = useContext(ThemeContext);
-  const { isLoading } = useContext(AuthContext);
+  // Obtenemos el usuario y el estado de carga
+  const { user, isLoading } = useContext(AuthContext); 
 
+  // Aplicamos el tema de navegación
   const appTheme = theme.mode === 'dark' ? DarkTheme : DefaultTheme;
+  
+  // Adaptar colores del tema al DefaultTheme/DarkTheme de React Navigation
+  appTheme.colors.primary = theme.colors.primary || '#e91e63';
+  appTheme.colors.background = theme.colors.background;
+  appTheme.colors.card = theme.colors.card;
+  appTheme.colors.text = theme.colors.text;
 
   return (
     <NavigationContainer theme={appTheme}>
       {isLoading ? (
         <View style={[styles.loadingContainer, { backgroundColor: appTheme.colors.background }]}>
-          <ActivityIndicator size="large" color={theme.mode === 'dark' ? '#fff' : '#e91e63'} />
+          <ActivityIndicator size="large" color={theme.colors.primary || '#e91e63'} />
         </View>
       ) : (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {/* Ruta principal con las pestañas */}
-          <Stack.Screen name="Tabs" component={TabNavigator} />
           
-          {/* Pantallas adicionales sin pestañas */}
-          <Stack.Screen 
-            name="Cámara" 
-            component={CameraScreen} 
-            options={{ headerShown: false }} 
-          />
-          <Stack.Screen 
-            name="DoorDetection" 
-            component={DoorDetectionScreen} 
-          />
-          <Stack.Screen 
-            name="Reporte" 
-            component={ReportScreen} 
-          />
+          {/* LÓGICA DE RENDERIZADO CONDICIONAL */}
+          {user ? (
+            <>
+              {/* Si el usuario existe, muestra las pestañas y las pantallas internas */}
+              <Stack.Screen name="Tabs" component={TabNavigator} />
+              <Stack.Screen 
+                name="Cámara" 
+                component={CameraScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="DoorDetection" 
+                component={DoorDetectionScreen} 
+              />
+              <Stack.Screen 
+                name="Reporte" 
+                component={ReportScreen} 
+              />
+            </>
+          ) : (
+            <>
+              {/* Si no hay usuario, muestra el Stack de Autenticación */}
+              <Stack.Screen name="Auth" component={AuthNavigator} />
+            </>
+          )}
         </Stack.Navigator>
       )}
     </NavigationContainer>
