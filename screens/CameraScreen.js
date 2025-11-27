@@ -213,7 +213,7 @@ export default function CameraScreen() {
         </View>
       ))}
 
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('MainTabs', { screen: 'Inicio' })}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Tabs', { screen: 'Inicio' })}>
         <Ionicons name="arrow-back" size={24} color="white" />
       </TouchableOpacity>
 
