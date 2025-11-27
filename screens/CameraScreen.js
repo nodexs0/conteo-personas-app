@@ -136,7 +136,7 @@ export default function CameraScreen() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('http://192.168.1.68:8000/predict/doors', formData, {
+      const response = await axios.post('http://192.168.23.50:8000/predict/doors', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       await new Promise(resolve => setTimeout(resolve, 2000));
