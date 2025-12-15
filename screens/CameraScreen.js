@@ -136,7 +136,7 @@ export default function CameraScreen() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('http://192.168.1.68:8000/predict/person', formData, {
+      const response = await axios.post('http://192.168.23.50:8000/predict/person', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -213,7 +213,7 @@ export default function CameraScreen() {
         </View>
       ))}
 
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('MainTabs', { screen: 'Inicio' })}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Tabs', { screen: 'Inicio' })}>
         <Ionicons name="arrow-back" size={24} color="white" />
       </TouchableOpacity>
 
