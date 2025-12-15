@@ -2,7 +2,7 @@
   "expo": {
     "name": "conteo-personas-app",
     "slug": "conteo-personas-app",
-    "scheme": "conteo-personas-app",
+    "scheme": "com.ethan172.conteoapp",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -36,6 +36,6 @@
         "projectId": "b2600545-59bb-4177-ae8f-94c0510d3006"
       }
     },
-    "owner": "ethan172"
+    "owner": "nateowo"
   }
 }

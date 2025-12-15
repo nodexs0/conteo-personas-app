@@ -12,21 +12,42 @@ const USER_STORAGE_KEY = 'user_data_expo_app';
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  // ⬅️ NUEVO ESTADO: Para almacenar el token de acceso de Google Drive
+  const [googleAccessToken, setGoogleAccessToken] = useState(null); 
 
   // Configuración de Google Auth
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: "603547577917-j53v45295fqlem2qggfl0abm7rtae8rh.apps.googleusercontent.com",
-    androidClientId: "603547577917-ivi5qjvttcoqrr74mgfpponiompdkije.apps.googleusercontent.com",
+    webClientId: "5913171432-8rts4313ot3330dg5ed44u9evk46pb15.apps.googleusercontent.com",
+    androidClientId: "5913171432-hb826pmbtbdn62o9kith3o4ghdoek7jv.apps.googleusercontent.com",
     iosClientId: "TU_IOS_CLIENT_ID.apps.googleusercontent.com", // Asegúrate de cambiar esto
-    scopes: ["profile", "email"],
-    useProxy: true,
+    // ✅ Scope de Drive añadido (ya está correcto)
+    scopes: ["profile", "email", "https://www.googleapis.com/auth/drive.file"], 
+    // useProxy: true, // Lo dejamos comentado, como tú lo tienes.
   });
+
+  // Para la URI (Dejamos tu código de depuración intacto)
+  useEffect(() => {
+    if (request) {
+      console.log("-----------------------------------------");
+      console.log("URI DE REDIRECCIÓN A REGISTRAR EN GOOGLE:");
+      console.log(request.redirectUri); // Imprimirá la URI
+      console.log("-----------------------------------------");
+    }
+  }, [request]);
 
   // Manejar la respuesta de Google Auth
   useEffect(() => {
     if (response?.type === 'success') {
       const { authentication } = response;
-      fetchUserInfo(authentication.accessToken);
+      
+      // 1. Extraer y guardar el token para Drive
+      const accessToken = authentication.accessToken; 
+      setGoogleAccessToken(accessToken); // ⬅️ Corregida la asignación del estado
+      
+      // 2. Obtener la información del perfil del usuario (usando el token)
+      fetchUserInfo(accessToken);
+    } else if (response?.type === 'error') {
+      console.error('Error de autenticación:', response.error);
     }
   }, [response]);
 
@@ -76,25 +97,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 2. Placeholder para Iniciar sesión con Email/Password
+  // 2. Placeholder para Iniciar sesión con Email/Password (omito para brevedad)
   const signInWithEmail = async (email, password) => {
     setIsLoading(true);
-    // Aquí iría la lógica real de Firebase o tu backend
     console.log(`Iniciando sesión con: ${email} / ${password}`);
-    
-    // Simulación de éxito
     await new Promise(resolve => setTimeout(resolve, 1500)); 
     setUser({ name: 'Usuario Demo', email });
     setIsLoading(false);
   };
 
-  // 3. Placeholder para Registro con Email/Password
+  // 3. Placeholder para Registro con Email/Password (omito para brevedad)
   const registerWithEmail = async (email, password) => {
     setIsLoading(true);
-    // Aquí iría la lógica real de Firebase o tu backend
     console.log(`Registrando con: ${email} / ${password}`);
-    
-    // Simulación de éxito (y luego iniciar sesión)
     await new Promise(resolve => setTimeout(resolve, 1500)); 
     setUser({ name: 'Usuario Nuevo', email });
     setIsLoading(false);
@@ -106,6 +121,8 @@ export const AuthProvider = ({ children }) => {
     try {
       await AsyncStorage.removeItem(USER_STORAGE_KEY);
       setUser(null);
+      // Limpiar también el token de Google
+      setGoogleAccessToken(null); 
     } catch (e) {
       console.error('Error signing out:', e);
     }
@@ -118,7 +135,8 @@ export const AuthProvider = ({ children }) => {
       signInWithEmail, 
       registerWithEmail,
       signOut, 
-      isLoading 
+      isLoading,
+      googleAccessToken // ⬅️ EXPONER EL TOKEN para Drive
     }}>
       {children}
     </AuthContext.Provider>
@@ -126,5 +144,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-
