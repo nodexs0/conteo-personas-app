@@ -20,7 +20,7 @@ const createTheme = (mode, primary, background, text, card, border) => ({
 const lightTheme = createTheme(
   'light', 
   '#e91e63', // primary (color de acento)
-  '#f5f5f5', // background (el que usabas era #fff)
+  '#832b4aff', // background (el que usabas era #fff, #f5f5f5)
   '#333333' // text (el que usabas era #000)
 );
 

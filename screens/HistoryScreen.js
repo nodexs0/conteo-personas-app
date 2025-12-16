@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,7 +28,7 @@ export default function HistoryScreen() {
     loadReports();
   }, []);
 
-  // Detecta si viene una foto desde CameraScreen
+  // Detectar foto desde CameraScreen
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       if (route.params?.photoUri) {
@@ -61,6 +62,7 @@ export default function HistoryScreen() {
     navigation.navigate('Cámara');
   };
 
+  // Crear reporte con foto
   const createReportFromPhoto = async (photoUri) => {
     const timestamp = new Date().toISOString();
     const newReport = {
@@ -76,6 +78,7 @@ export default function HistoryScreen() {
     Alert.alert('Reporte guardado', 'El reporte con foto se ha creado correctamente.');
   };
 
+  // Crear reporte de ejemplo
   const createExampleReport = async () => {
     const timestamp = new Date().toISOString();
     const newReport = {
@@ -91,7 +94,18 @@ export default function HistoryScreen() {
     Alert.alert('Reporte de ejemplo creado');
   };
 
+  // 🔥 LIMPIAR TODOS LOS REPORTES (compatible web)
   const clearReports = async () => {
+    if (Platform.OS === 'web') {
+      const ok = window.confirm('¿Deseas eliminar todos los reportes?');
+      if (!ok) return;
+
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      setReports([]);
+      return;
+    }
+
+    // móvil
     Alert.alert('Confirmar', '¿Deseas eliminar todos los reportes?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -105,8 +119,18 @@ export default function HistoryScreen() {
     ]);
   };
 
-  // 🧨 Eliminar reporte individual
+  // 🧨 ELIMINAR REPORTE INDIVIDUAL (compatible web)
   const deleteReport = async (id) => {
+    if (Platform.OS === 'web') {
+      const ok = window.confirm('¿Deseas eliminar este reporte?');
+      if (!ok) return;
+
+      const updatedReports = reports.filter((r) => r.id !== id);
+      await saveReports(updatedReports);
+      return;
+    }
+
+    // móvil
     Alert.alert('Eliminar reporte', '¿Deseas eliminar este reporte?', [
       { text: 'Cancelar', style: 'cancel' },
       {
