@@ -1,49 +1,42 @@
-// screens/HistoryScreen.js
-import React, { useEffect, useState, useContext } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Alert,
-  Platform,
+import React, { useEffect, useState } from 'react';
+import { 
+  View, Text, StyleSheet, ScrollView, Image, 
+  TouchableOpacity, Alert, Platform, FlatList, Dimensions 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ThemeContext } from '../theme/ThemeContext';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Trash2, PlusCircle, Trash, Video, ChevronRight } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const STORAGE_KEY = '@reports_data';
+const { width } = Dimensions.get('window');
 
 export default function HistoryScreen() {
   const [reports, setReports] = useState([]);
-  const { theme } = useContext(ThemeContext);
   const navigation = useNavigation();
-  const route = useRoute();
 
   useEffect(() => {
     loadReports();
   }, []);
 
-  // Detectar foto desde CameraScreen
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      if (route.params?.photoUri) {
-        createReportFromPhoto(route.params.photoUri);
-        navigation.setParams({ photoUri: null });
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation, route.params?.photoUri]);
-
   const loadReports = async () => {
     try {
       const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
-      if (jsonValue != null) setReports(JSON.parse(jsonValue));
+      if (jsonValue != null) {
+        setReports(JSON.parse(jsonValue));
+      } else {
+        // Reportes iniciales si no hay nada guardado
+        setReports([
+          {
+            id: 'rep_1',
+            timestamp: new Date().toISOString(),
+            count: 15,
+            confidence: '0.85',
+            imageUri: 'https://picsum.photos/seed/report1/400/300',
+            status: 'Salón medio lleno',
+          }
+        ]);
+      }
     } catch (e) {
       console.error('Error cargando reportes', e);
     }
@@ -58,185 +51,109 @@ export default function HistoryScreen() {
     }
   };
 
-  const goToCamera = () => {
-    navigation.navigate('Cámara');
-  };
-
-  // Crear reporte con foto
-  const createReportFromPhoto = async (photoUri) => {
-    const timestamp = new Date().toISOString();
-    const newReport = {
-      id: `rep_${timestamp}`,
-      timestamp,
-      count: Math.floor(Math.random() * 30),
-      confidence: (Math.random() * 0.5 + 0.5).toFixed(2),
-      imageUri: photoUri,
-      status: 'Reporte con foto',
-    };
-    const updatedReports = [newReport, ...reports];
-    await saveReports(updatedReports);
-    Alert.alert('Reporte guardado', 'El reporte con foto se ha creado correctamente.');
-  };
-
-  // Crear reporte de ejemplo
-  const createExampleReport = async () => {
-    const timestamp = new Date().toISOString();
-    const newReport = {
-      id: `rep_${timestamp}`,
-      timestamp,
-      count: Math.floor(Math.random() * 30),
-      confidence: (Math.random() * 0.5 + 0.5).toFixed(2),
-      imageName: 'reporte1.jpg',
-      status: 'Salón lleno',
-    };
-    const updatedReports = [newReport, ...reports];
-    await saveReports(updatedReports);
-    Alert.alert('Reporte de ejemplo creado');
-  };
-
-  // 🔥 LIMPIAR TODOS LOS REPORTES (compatible web)
-  const clearReports = async () => {
-    if (Platform.OS === 'web') {
-      const ok = window.confirm('¿Deseas eliminar todos los reportes?');
-      if (!ok) return;
-
-      await AsyncStorage.removeItem(STORAGE_KEY);
-      setReports([]);
-      return;
-    }
-
-    // móvil
-    Alert.alert('Confirmar', '¿Deseas eliminar todos los reportes?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.removeItem(STORAGE_KEY);
-          setReports([]);
-        },
-      },
-    ]);
-  };
-
-  // 🧨 ELIMINAR REPORTE INDIVIDUAL (compatible web)
-  const deleteReport = async (id) => {
-    if (Platform.OS === 'web') {
-      const ok = window.confirm('¿Deseas eliminar este reporte?');
-      if (!ok) return;
-
+  const deleteReport = (id) => {
+    const confirmDelete = () => {
       const updatedReports = reports.filter((r) => r.id !== id);
-      await saveReports(updatedReports);
-      return;
-    }
+      saveReports(updatedReports);
+    };
 
-    // móvil
-    Alert.alert('Eliminar reporte', '¿Deseas eliminar este reporte?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          const updatedReports = reports.filter((r) => r.id !== id);
-          await saveReports(updatedReports);
-        },
-      },
-    ]);
+    if (Platform.OS === 'web') {
+      if (confirm('¿Eliminar este reporte?')) confirmDelete();
+    } else {
+      Alert.alert('Eliminar', '¿Estás seguro de eliminar este reporte?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: confirmDelete },
+      ]);
+    }
   };
 
-  const renderItem = ({ item }) => (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor:
-            theme.mode === 'dark'
-              ? 'rgba(255,255,255,0.05)'
-              : 'rgba(255,255,255,0.25)',
-          borderColor:
-            theme.mode === 'dark'
-              ? 'rgba(255,255,255,0.1)'
-              : 'rgba(255,255,255,0.35)',
-        },
-      ]}
+  const clearReports = () => {
+    const confirmClear = () => saveReports([]);
+    
+    if (Platform.OS === 'web') {
+      if (confirm('¿Eliminar TODOS los reportes?')) confirmClear();
+    } else {
+      Alert.alert('Limpiar Historial', 'Esta acción no se puede deshacer.', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Limpiar Todo', style: 'destructive', onPress: confirmClear },
+      ]);
+    }
+  };
+
+  const createExampleReport = () => {
+    const timestamp = new Date().toISOString();
+    const newReport = {
+      id: `rep_${Date.now()}`,
+      timestamp,
+      count: Math.floor(Math.random() * 30),
+      confidence: (Math.random() * 0.5 + 0.5).toFixed(2),
+      imageUri: `https://picsum.photos/seed/${Date.now()}/400/300`,
+      status: 'Detección Manual',
+    };
+    saveReports([newReport, ...reports]);
+  };
+
+  const renderReportItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={() => navigation.navigate('Reporte', { reportId: item.id })}
     >
-      {/* Ícono para eliminar */}
-      <TouchableOpacity
-        style={styles.deleteIcon}
-        onPress={() => deleteReport(item.id)}
-      >
-        <Ionicons name="trash-outline" size={22} color="#d9534f" />
-      </TouchableOpacity>
-
-      {/* Contenido del card */}
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Reporte', { report: item })}
-        activeOpacity={0.8}
-        style={{ flexDirection: 'row', flex: 1 }}
-      >
-        <Image
-          source={
-            item.imageUri
-              ? { uri: item.imageUri }
-              : require('../assets/reporte1.jpg')
-          }
-          style={styles.image}
-        />
-        <View style={styles.info}>
-          <Text
-            style={[
-              styles.title,
-              { color: theme.mode === 'dark' ? '#fff' : '#222' },
-            ]}
-          >
-            Reporte ID: {item.id}
-          </Text>
-          <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
-            Fecha: {new Date(item.timestamp).toLocaleString()}
-          </Text>
-          <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
-            Personas detectadas: {item.count}
-          </Text>
-          <Text style={{ color: theme.mode === 'dark' ? '#ccc' : '#333' }}>
-            Descripción: {item.status}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const gradientColors =
-    theme.mode === 'dark'
-      ? ['#000000', '#1C1C1C', '#2E2E2E']
-      : ['#651D32', '#651D32', '#832b4aff'];
-
-  return (
-    <LinearGradient colors={gradientColors} style={styles.container}>
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.addButton} onPress={createExampleReport}>
-          <Text style={styles.buttonText}> Crear reporte</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.clearButton} onPress={clearReports}>
-          <Text style={styles.buttonText}> Limpiar</Text>
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: item.imageUri }} style={styles.cardImage} />
+        <TouchableOpacity 
+          style={styles.deleteIconButton} 
+          onPress={() => deleteReport(item.id)}
+        >
+          <Trash2 size={18} color="white" />
         </TouchableOpacity>
       </View>
 
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.dateText}>
+            {new Date(item.timestamp).toLocaleDateString()}
+          </Text>
+          <Text style={styles.confidenceBadge}>
+            {(parseFloat(item.confidence) * 100).toFixed(0)}% Conf.
+          </Text>
+        </View>
+
+        <Text style={styles.cardStatus}>{item.status}</Text>
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.countText}>Personas: {item.count}</Text>
+          <ChevronRight size={20} color="#9f1342" />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <LinearGradient colors={['#311B92', '#1A237E']} style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Historial</Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity style={styles.iconButton} onPress={createExampleReport}>
+            <PlusCircle size={24} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.iconButton, styles.deleteBtn]} onPress={clearReports}>
+            <Trash size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {reports.length === 0 ? (
-        <Text
-          style={[
-            styles.emptyText,
-            { color: theme.mode === 'dark' ? '#ccc' : '#fff' },
-          ]}
-        >
-          No hay reportes registrados aún.
-        </Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No hay reportes guardados.</Text>
+        </View>
       ) : (
         <FlatList
           data={reports}
+          renderItem={renderReportItem}
           keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={styles.listContent}
+          numColumns={width > 768 ? 3 : 1}
+          key={width > 768 ? 'h-web' : 'h-mobile'}
         />
       )}
     </LinearGradient>
@@ -244,58 +161,57 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 15 },
-  buttonRow: {
+  container: { flex: 1 },
+  header: {
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 15,
-  },
-  addButton: {
-    flex: 1,
-    backgroundColor: '#24aa2dff',
-    padding: 14,
-    borderRadius: 20,
-    marginRight: 7,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
   },
-  clearButton: {
-    flex: 1,
-    backgroundColor: '#bb2e2eff',
-    padding: 14,
-    borderRadius: 20,
-    marginLeft: 7,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  headerTitle: { fontSize: 28, fontWeight: 'bold', color: 'white' },
+  headerButtons: { flexDirection: 'row', gap: 15 },
+  iconButton: { padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12 },
+  deleteBtn: { backgroundColor: 'rgba(220, 38, 38, 0.4)' },
+  listContent: { padding: 15 },
   card: {
-    padding: 15,
+    backgroundColor: 'white',
     borderRadius: 20,
-    marginBottom: 12,
-    borderWidth: 1,
+    marginBottom: 20,
+    overflow: 'hidden',
+    marginHorizontal: 10,
+    flex: 1, // Para el grid en web
+    elevation: 5,
     shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
-    position: 'relative',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
-  deleteIcon: {
+  imageContainer: { position: 'relative' },
+  cardImage: { width: '100%', height: 180, resizeMode: 'cover' },
+  deleteIconButton: {
     position: 'absolute',
     top: 10,
     right: 10,
-    zIndex: 2,
-    padding: 5,
+    backgroundColor: '#dc2626',
+    padding: 8,
+    borderRadius: 10,
   },
-  image: { width: 80, height: 80, borderRadius: 10, marginRight: 12 },
-  info: { flex: 1, justifyContent: 'center' },
-  title: { fontWeight: 'bold', fontSize: 15, marginBottom: 4 },
-  emptyText: { textAlign: 'center', marginTop: 40, fontSize: 16 },
-  list: { paddingBottom: 30 },
+  cardContent: { padding: 15 },
+  cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  dateText: { fontSize: 12, color: '#666' },
+  confidenceBadge: { fontSize: 12, color: '#9f1342', fontWeight: 'bold' },
+  cardStatus: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 10 },
+  cardFooter: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 10
+  },
+  countText: { fontSize: 16, fontWeight: '600', color: '#555' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { color: 'white', fontSize: 16, opacity: 0.8 }
 });
