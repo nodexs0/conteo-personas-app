@@ -11,7 +11,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { 
   ArrowLeft, FileText, User, Clock, 
-  Percent, Info, Save, Share2, Cloud
+  Percent, Hash, Save, Share2, Cloud,
+  LogIn, LogOut, Timer
 } from 'lucide-react-native';
 
 import { ThemeContext } from '../theme/ThemeContext';
@@ -60,7 +61,6 @@ export default function ReportScreen({ route, navigation }) {
     finally { setActionLoading(false); }
   };
 
-  // --- Lógica Interna de Drive ---
   const getBase64Image = async (uri) => {
     if (uri && uri.startsWith('file://')) {
       try {
@@ -72,6 +72,84 @@ export default function ReportScreen({ route, navigation }) {
     return null;
   };
 
+const generateHTML = async () => {
+    const base64 = await getBase64Image(report.frame_final || report.imageUri);
+    
+    // Usamos tablas para el layout porque flexbox a veces falla en motores de impresión PDF antiguos
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            @page { size: A4; margin: 0; }
+            body { margin: 0; padding: 0; font-family: 'Helvetica', Arial, sans-serif; background-color: #d47f00; }
+            .wrapper { background-color: #d47f00; padding: 40px 0; min-height: 100vh; }
+            .container { background-color: white; width: 85%; margin: 0 auto; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+            .header { background-color: #f8f9fa; padding: 30px; border-bottom: 2px solid #eee; }
+            .main-image { width: 100%; max-height: 350px; object-fit: cover; display: block; }
+            .content { padding: 30px; background-color: white; }
+            .section-title { color: #d47f00; font-size: 18px; font-weight: bold; border-bottom: 2px solid #ffcf8b; padding-bottom: 5px; margin-bottom: 15px; }
+            
+            /* Estilos de Tabla para columnas */
+            .stats-table { width: 100%; border-collapse: separate; border-spacing: 10px; margin-bottom: 20px; }
+            .stat-card { padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; }
+            .entry-bg { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+            .exit-bg { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+            .inside-bg { background-color: #fdf2f2; color: #9f1342; border: 1px solid #ffccbc; padding: 20px; margin-top: 10px; border-radius: 12px; text-align: center; font-weight: bold; }
+            
+            .info-text { font-size: 14px; color: #444; margin: 5px 0; }
+            .label { color: #888; font-weight: bold; }
+            .comment-box { background-color: #f5f5f5; padding: 15px; border-radius: 10px; border-left: 5px solid #d47f00; font-style: italic; font-size: 13px; }
+          </style>
+        </head>
+        <body>
+          <div class="wrapper">
+            <div class="container">
+              <div class="header">
+                <h1 style="margin:0; color:#333; font-size: 24px;">Sesión de Monitoreo</h1>
+                <p style="margin:5px 0; color:#666; font-size: 12px;">ID: ${report.session_id || report.id}</p>
+              </div>
+
+              ${base64 ? `<img src="data:image/jpeg;base64,${base64}" class="main-image" />` : ''}
+
+              <div class="content">
+                <div class="section-title">Detalles de Tiempo</div>
+                <p class="info-text"><span class="label">Inicio:</span> ${new Date(report.inicio || report.timestamp).toLocaleString()}</p>
+                <p class="info-text"><span class="label">Fin:</span> ${report.fin ? new Date(report.fin).toLocaleString() : 'Sesión Activa'}</p>
+                <p class="info-text" style="margin-bottom:20px;"><span class="label">Duración:</span> ${report.duracion_segundos || 0} segundos</p>
+
+                <div class="section-title">Flujo de Personas</div>
+                <table class="stats-table">
+                  <tr>
+                    <td class="stat-card entry-bg">
+                      <div style="font-size: 10px;">ENTRADAS</div>
+                      <div style="font-size: 18px;">${report.entradas || 0}</div>
+                    </td>
+                    <td class="stat-card exit-bg">
+                      <div style="font-size: 10px;">SALIDAS</div>
+                      <div style="font-size: 18px;">${report.salidas || 0}</div>
+                    </td>
+                  </tr>
+                </table>
+
+                <div class="inside-bg">
+                  Personas detectadas al final: ${report.personas_dentro || report.count}
+                </div>
+
+                <div class="section-title" style="margin-top:25px;">Notas y Observaciones</div>
+                <div class="comment-box">
+                  ${comment || 'No se ingresaron notas adicionales para este reporte.'}
+                </div>
+              </div>
+            </div>
+            <p style="text-align:center; color:white; font-size:10px; margin-top:20px;">Presence Pro - UPIIT | IPN</p>
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
   const saveReportToDrive = async () => {
     if (!googleAccessToken) {
       Alert.alert("Error", "No hay sesión de Google activa.");
@@ -79,24 +157,15 @@ export default function ReportScreen({ route, navigation }) {
     }
     setActionLoading(true);
     try {
-      const base64Image = await getBase64Image(report.imageUri);
-      const fileName = `Reporte_${report.id.substring(0,8)}.html`;
-      
-      const htmlContent = `
-        <html>
-          <body style="font-family: Arial; padding: 20px;">
-            <h1 style="color: #311B92;">Reporte</h1>
-            <p><strong>ID:</strong> ${report.id}</p>
-            <p><strong>Fecha:</strong> ${new Date(report.timestamp).toLocaleString()}</p>
-            <p><strong>Personas:</strong> ${report.count}</p>
-            <p><strong>Notas:</strong> ${comment || 'Sin comentarios'}</p>
-            ${base64Image ? `<img src="data:image/jpeg;base64,${base64Image}" style="width:100%; border-radius:10px;"/>` : ''}
-          </body>
-        </html>`;
+      const htmlContent = await generateHTML();
+      const { uri: localPdfUri } = await Print.printToFileAsync({ html: htmlContent, width: 595, height: 842 });
+      const pdfBase64 = await FileSystem.readAsStringAsync(localPdfUri, { encoding: FileSystem.EncodingType.Base64 });
 
-      const boundary = 'BoundaryDrive';
-      const metadata = JSON.stringify({ name: fileName, mimeType: 'text/html' });
-      const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/html\r\n\r\n${htmlContent}\r\n--${boundary}--`;
+      const fileName = `Reporte_Sesion_${(report.session_id || report.id).substring(0,8)}.pdf`;
+      const boundary = 'BoundaryDrivePDF';
+      const metadata = JSON.stringify({ name: fileName, mimeType: 'application/pdf' });
+      
+      const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/pdf\r\nContent-Transfer-Encoding: base64\r\n\r\n${pdfBase64}\r\n--${boundary}--`;
 
       const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
@@ -109,23 +178,19 @@ export default function ReportScreen({ route, navigation }) {
 
       if (response.ok) {
         const data = await response.json();
-        Alert.alert("Éxito", "Guardado en Drive", [
+        Alert.alert("Éxito", "PDF guardado en Drive", [
           { text: "Abrir", onPress: () => Linking.openURL(`https://drive.google.com/file/d/${data.id}/view`) }
         ]);
-      } else {
-        Alert.alert("Error", "La API de Google rechazó la subida.");
-      }
-    } catch (e) {
-      Alert.alert("Error", "Fallo al conectar con Drive.");
-    } finally { setActionLoading(false); }
+      } else { Alert.alert("Error", "La API de Drive rechazó el PDF."); }
+    } catch (e) { Alert.alert("Error", "Fallo al conectar con Drive."); }
+    finally { setActionLoading(false); }
   };
 
   const handleExportPDF = async () => {
     setActionLoading(true);
     try {
-      const base64 = await getBase64Image(report.imageUri);
-      const html = `<html><body style="padding:40px;"><h1>Informe</h1><p>${report.id}</p>${base64 ? `<img src="data:image/jpeg;base64,${base64}" style="width:100%"/>`:''}</body></html>`;
-      const { uri } = await Print.printToFileAsync({ html });
+      const html = await generateHTML();
+      const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
       await Sharing.shareAsync(uri);
     } catch (e) { Alert.alert("Error", "Fallo al generar PDF."); }
     finally { setActionLoading(false); }
@@ -146,39 +211,53 @@ export default function ReportScreen({ route, navigation }) {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View>
-                <Text style={styles.cardTitle}>Informe de Detección</Text>
-                <Text style={styles.cardDescription}>ID: {report.id}</Text>
+                <Text style={styles.cardTitle}>Sesión de Monitoreo</Text>
+                <Text style={styles.cardDescription}>ID: {report.session_id || report.id}</Text>
               </View>
-              <FileText color="#9f1342" size={28} />
+              <Hash color="#d47f00" size={28} />
             </View>
 
-            <Image source={{ uri: report.imageUri }} style={styles.image} />
+            <Image source={{ uri: report.frame_final || report.imageUri }} style={styles.image} />
 
             <View style={styles.cardContent}>
-              <Text style={styles.sectionTitle}>Detalles del Análisis</Text>
+              <Text style={styles.sectionTitle}>Tiempos de Sesión</Text>
               <View style={styles.detailItem}>
                 <Clock size={18} color="#666" />
                 <View>
-                  <Text style={styles.detailLabel}>Fecha y Hora</Text>
-                  <Text style={styles.detailValue}>{new Date(report.timestamp).toLocaleString()}</Text>
+                  <Text style={styles.detailLabel}>Inicio / Fin</Text>
+                  <Text style={styles.detailValue}>{new Date(report.inicio || report.timestamp).toLocaleString()}</Text>
+                  {report.fin && <Text style={styles.detailValue}>{new Date(report.fin).toLocaleString()}</Text>}
+                </View>
+              </View>
+
+              <View style={styles.detailItem}>
+                <Timer size={18} color="#666" />
+                <View>
+                  <Text style={styles.detailLabel}>Duración Total</Text>
+                  <Text style={styles.detailValue}>{report.duracion_segundos || 0} segundos</Text>
                 </View>
               </View>
 
               <View style={styles.resultsRow}>
-                <View style={styles.resultBadge}>
-                  <User size={20} color="#9f1342" />
-                  <Text style={styles.resultText}>{report.count} Personas</Text>
+                <View style={[styles.resultBadge, { backgroundColor: '#e8f5e9' }]}>
+                  <LogIn size={20} color="#2e7d32" />
+                  <Text style={[styles.resultText, { color: '#2e7d32' }]}>{report.entradas || 0} Entradas</Text>
                 </View>
-                <View style={styles.resultBadge}>
-                  <Percent size={20} color="#9f1342" />
-                  <Text style={styles.resultText}>{(parseFloat(report.confidence)*100).toFixed(0)}%</Text>
+                <View style={[styles.resultBadge, { backgroundColor: '#ffebee' }]}>
+                  <LogOut size={20} color="#c62828" />
+                  <Text style={[styles.resultText, { color: '#c62828' }]}>{report.salidas || 0} Salidas</Text>
                 </View>
+              </View>
+
+              <View style={[styles.resultBadge, { marginBottom: 20, width: '100%', backgroundColor: '#fdf2f2' }]}>
+                <User size={20} color="#9f1342" />
+                <Text style={[styles.resultText, { color: '#9f1342' }]}>Personas en sitio: {report.personas_dentro || report.count}</Text>
               </View>
 
               <View style={styles.commentContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Escribe una observación..."
+                  placeholder="Observaciones de la sesión..."
                   multiline
                   value={comment}
                   onChangeText={setComment}
@@ -200,12 +279,10 @@ export default function ReportScreen({ route, navigation }) {
                   onPress={saveReportToDrive}
                   disabled={actionLoading}
                 >
-                  {actionLoading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
+                  {actionLoading ? <ActivityIndicator color="white" /> : (
                     <>
                       <Cloud size={16} color="white" />
-                      <Text style={[styles.exportBtnText, {color: 'white'}]}>Google Drive</Text>
+                      <Text style={[styles.exportBtnText, {color: 'white'}]}>Drive</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -221,23 +298,23 @@ export default function ReportScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   mainWrapper: { flex: 1 },
   container: { flex: 1 },
-  center: { flex: 1, backgroundColor: '#311B92', justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, backgroundColor: '#d47f00', justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 20, paddingTop: 50, paddingBottom: 60 },
   backButton: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, marginBottom: 20, gap: 8 },
-  backText: { color: 'white' },
-  card: { backgroundColor: 'white', borderRadius: 16, overflow: 'hidden' },
+  backText: { color: 'white', fontWeight: 'bold' },
+  card: { backgroundColor: 'white', borderRadius: 16, overflow: 'hidden', elevation: 5 },
   cardHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#f9f9f9' },
   cardTitle: { fontSize: 20, fontWeight: 'bold' },
   cardDescription: { fontSize: 10, color: '#666' },
-  image: { width: '100%', height: 250 },
+  image: { width: '100%', height: 250, resizeMode: 'cover' },
   cardContent: { padding: 20 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   detailItem: { flexDirection: 'row', gap: 12, marginBottom: 15 },
   detailLabel: { fontSize: 12, color: '#888' },
   detailValue: { fontSize: 14 },
-  resultsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  resultBadge: { flex: 1, backgroundColor: '#fdf2f2', padding: 15, borderRadius: 12, alignItems: 'center' },
-  resultText: { fontWeight: 'bold', color: '#9f1342' },
+  resultsRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  resultBadge: { flex: 1, padding: 15, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  resultText: { fontWeight: 'bold' },
   commentContainer: { marginTop: 10 },
   input: { backgroundColor: '#f9f9f9', padding: 12, borderRadius: 8, height: 80, textAlignVertical: 'top', borderWidth: 1, borderColor: '#eee' },
   saveBtn: { backgroundColor: '#311B92', padding: 12, borderRadius: 8, marginTop: 10, flexDirection: 'row', justifyContent: 'center', gap: 8 },
