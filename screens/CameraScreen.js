@@ -17,7 +17,8 @@ import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
+
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState('back');
@@ -267,7 +268,7 @@ export default function CameraScreen() {
 
   const generateAndStoreReport = async ({ imageUri, stats }) => {
     const report = {
-      id: uuidv4(),
+      id: Crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       count: stats.personas_dentro,
       entradas: stats.entradas,
