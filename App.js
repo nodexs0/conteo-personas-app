@@ -9,7 +9,7 @@ import HomeScreen from './screens/HomeScreen';
 import ConfigScreen from './screens/ConfigScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import DoorDetectionScreen from './screens/DoorDetectionScreen';
-import ReportScreen from './screens/Report';
+import ReportScreen from './screens/ReportScreen';
 import CameraScreen from './screens/CameraScreen';
 import WelcomeScreen from './screens/WelcomeScreen';
 // Importamos el nuevo Navigator de Autenticación

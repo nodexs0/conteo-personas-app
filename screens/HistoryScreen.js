@@ -129,7 +129,7 @@ export default function HistoryScreen() {
   );
 
   return (
-    <LinearGradient colors={['#311B92', '#1A237E']} style={styles.container}>
+    <LinearGradient colors={['#921b1bff', '#b37e7eff']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Historial</Text>
         <View style={styles.headerButtons}>
