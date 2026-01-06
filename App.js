@@ -11,6 +11,7 @@ import HistoryScreen from './screens/HistoryScreen';
 import DoorDetectionScreen from './screens/DoorDetectionScreen';
 import ReportScreen from './screens/Report';
 import CameraScreen from './screens/CameraScreen';
+import WelcomeScreen from './screens/WelcomeScreen';
 // Importamos el nuevo Navigator de Autenticación
 import AuthNavigator from './screens/AuthScreen'; 
 
@@ -103,6 +104,7 @@ function RootNavigator() {
           ) : (
             <>
               {/* Si no hay usuario, muestra el Stack de Autenticación */}
+              <Stack.Screen name="Welcome" component={WelcomeScreen} />
               <Stack.Screen name="Auth" component={AuthNavigator} />
             </>
           )}
