@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo  } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Modal,
+  PanResponder
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
@@ -56,7 +57,9 @@ export default function CameraScreen() {
   // === PUERTAS ===
   const [doorBoxes, setDoorBoxes] = useState([]);          // para dibujar
   const [doorCoordsRaw, setDoorCoordsRaw] = useState(null); // para tracking (coords originales)
-
+  const [isDrawingDoor, setIsDrawingDoor] = useState(false);
+  const [doorStart, setDoorStart] = useState(null);
+  const [doorPreviewBox, setDoorPreviewBox] = useState(null);
 
 
   // URL del servidor
@@ -99,6 +102,49 @@ export default function CameraScreen() {
       };
     }, [])
   );
+
+ const doorPanResponder = useMemo(
+  () =>
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+
+      onPanResponderGrant: (evt) => {
+        if (!isDrawingDoor) return;
+
+        const { locationX, locationY } = evt.nativeEvent;
+        setDoorStart({ x: locationX, y: locationY });
+        setDoorPreviewBox(null);
+      },
+
+      onPanResponderMove: (evt) => {
+        if (!doorStart) return;
+
+        const { locationX, locationY } = evt.nativeEvent;
+
+        setDoorPreviewBox({
+          x: Math.min(doorStart.x, locationX),
+          y: Math.min(doorStart.y, locationY),
+          width: Math.abs(locationX - doorStart.x),
+          height: Math.abs(locationY - doorStart.y),
+        });
+      },
+
+      onPanResponderRelease: () => {
+        if (!doorPreviewBox) {
+          setIsDrawingDoor(false);
+          return;
+        }
+
+        setDoorBoxes([doorPreviewBox]);
+        setIsDrawingDoor(false);
+        setDoorStart(null);
+      },
+    }),
+  [isDrawingDoor, doorStart, doorPreviewBox]
+);
+
+
 
   // =================== DETECCIÓN NORMAL (personas) ===================
   const captureWebFrame = () => {
@@ -601,22 +647,25 @@ const detectDoors = async () => {
   // =================== RENDER ===================
   if (!permission && !isWeb) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={styles.loadingText}>Cargando permisos...</Text>
-      </View>
+      <View
+      style={styles.container}></View>
     );
   }
 
   if (!permission?.granted && !isWeb) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.message}>Necesitamos tu permiso para usar la cámara</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionText}>Conceder Permiso</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  return (
+    <View style={styles.container}>
+      <Text style={styles.message}>
+        Necesitamos tu permiso para usar la cámara
+      </Text>
+      <TouchableOpacity
+        style={styles.permissionButton}
+        onPress={requestPermission}
+      >
+        <Text style={styles.permissionText}>Conceder Permiso</Text>
+      </TouchableOpacity>
+    </View>
+  );
   }
 
   return (
@@ -687,6 +736,23 @@ const detectDoors = async () => {
       </View>
     ))}
 
+    {doorPreviewBox && (
+      <View
+      style={[
+        styles.boundingBox,
+        {
+          left: doorPreviewBox.x,
+          top: doorPreviewBox.y,
+          width: doorPreviewBox.width,
+          height: doorPreviewBox.height,
+          borderColor: '#00BFFF',
+          borderStyle: 'dotted',
+        }
+      ]}
+      />
+    )}
+
+
       {/* Botones de control */}
       <TouchableOpacity 
         style={styles.backButton} 
@@ -713,12 +779,16 @@ const detectDoors = async () => {
       {/* Botón de puertas */}
 
       <TouchableOpacity
-        style={styles.doorButton}
-        onPress={detectDoors}
-        disabled={isProcessing || isModelLoading || isTracking}
+      style={styles.doorButton}
+        onPress={() => {
+        setDoorBoxes([]);
+        setDoorCoordsRaw(null);
+        setIsDrawingDoor(true);
+        }}
+      disabled={isProcessing}
       >
-      <MaterialCommunityIcons name="door" size={24} color="white" />
-      </TouchableOpacity>
+  <MaterialCommunityIcons name="door" size={24} color="white" />
+</TouchableOpacity>
 
       {/* Botones principales de acción */}
       <View style={styles.actionButtonsContainer}>
@@ -872,6 +942,20 @@ const detectDoors = async () => {
           </Text>
         </View>
       )}
+{isWeb && isDrawingDoor && (
+  <View
+    style={[
+      StyleSheet.absoluteFill,
+      {
+        backgroundColor: 'rgba(0,0,0,0.01)',
+        zIndex: 999,
+        cursor: 'crosshair',
+        pointerEvents: 'auto',
+      },
+    ]}
+    {...doorPanResponder.panHandlers}
+  />
+)}
     </View>
   );
 }

@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ResizableBox from "../components/ResizableBox";
+import { PanResponder } from 'react-native';
 
 export default function DoorDetectionScreen() {
   const navigation = useNavigation();
@@ -15,6 +16,10 @@ export default function DoorDetectionScreen() {
   const [imageLayout, setImageLayout] = useState(null);
   const [imageSize, setImageSize] = useState({ width: 1, height: 1 });
   const [noDoorsDetected, setNoDoorsDetected] = useState(false);
+  const [isDrawingDoor, setIsDrawingDoor] = useState(false);
+  const [doorStart, setDoorStart] = useState(null);
+  const [doorPreviewBox, setDoorPreviewBox] = useState(null);
+
 
   useEffect(() => {
     if (photoUri) {
