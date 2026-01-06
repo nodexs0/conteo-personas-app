@@ -16,6 +16,8 @@ import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-ico
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState('back');
@@ -26,6 +28,8 @@ export default function CameraScreen() {
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [boxes, setBoxes] = useState([]);
   const [isDetecting, setIsDetecting] = useState(false);
+
+  const STORAGE_KEY = '@reports_data';
   
   // Estados para tracking
   const [isTracking, setIsTracking] = useState(false);
@@ -261,80 +265,152 @@ export default function CameraScreen() {
     }
   };
 
-  const stopTracking = async () => {
-    console.log('Deteniendo tracking...');
-    
-    // 1. MARCAR que estamos deteniendo (evitar nuevos envíos)
-    setIsProcessing(true);
-    
-    // 2. Detener TODOS los intervalos inmediatamente
-    if (trackingIntervalRef.current) {
-      console.log('Limpiando intervalo de tracking');
-      clearInterval(trackingIntervalRef.current);
-      trackingIntervalRef.current = null;
-    }
-    
-    if (detectionIntervalRef.current) {
-      console.log('Limpiando intervalo de detección');
-      clearInterval(detectionIntervalRef.current);
-      detectionIntervalRef.current = null;
-    }
-    
-    // 3. Guardar sessionId para DELETE
-    const currentSessionId = trackingSessionId;
-    
-    // 4. Limpiar estados locales INMEDIATAMENTE
-    console.log('Limpiando estados locales');
-    setIsTracking(false);
-    setTrackingSessionId(null);
-    setDoorBoxes([]);        
-    setDoorCoordsRaw(null); 
-    setTrackingStats({
-      entradas: 0,
-      salidas: 0,
-      personas_dentro: 0,
-    });
-    setShowTrackingModal(false);
-    setBoxes([]);
-    setFrameCounter(0);
-    setIsDetecting(false); // También detener detección si estaba activa
-    
-    // 5. Esperar un momento para que React actualice el estado
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // 6. Cerrar sesión en servidor (si existe)
-    if (currentSessionId) {
-      console.log('Enviando DELETE para sesión:', currentSessionId);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      
-      try {
-        await axios.delete(
-          `${SERVER_URL}/predict/tracking/session/${currentSessionId}`,
-          {
-            signal: controller.signal,
-            timeout: 1500
-          }
-        );
-        console.log('Sesión cerrada exitosamente');
-      } catch (err) {
-        // Ignorar errores específicos
-        if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
-          console.log('DELETE timeout (normal si la sesión ya expiró)');
-        } else if (err.response?.status === 404) {
-          console.log('Sesión ya no existe en el servidor');
-        } else {
-          console.log('Error al cerrar sesión (puede ignorarse):', err.message);
-        }
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    }
-    
-    setIsProcessing(false);
-    console.log('Tracking detenido completamente');
+  const generateAndStoreReport = async ({ imageUri, stats }) => {
+    const report = {
+      id: uuidv4(),
+      timestamp: new Date().toISOString(),
+      count: stats.personas_dentro,
+      entradas: stats.entradas,
+      salidas: stats.salidas,
+      confidence: 1, // fijo o calculado si quieres
+      imageUri,
+      comment: ''
+    };
+
+    const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
+    const reports = jsonValue ? JSON.parse(jsonValue) : [];
+
+    reports.unshift(report);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+
+    return report.id;
   };
+
+  const stopTracking = async () => {
+  console.log('Deteniendo tracking...');
+  setIsProcessing(true);
+
+  // Detener intervalos INMEDIATO
+  if (trackingIntervalRef.current) {
+    clearInterval(trackingIntervalRef.current);
+    trackingIntervalRef.current = null;
+  }
+
+  if (detectionIntervalRef.current) {
+    clearInterval(detectionIntervalRef.current);
+    detectionIntervalRef.current = null;
+  }
+
+  const currentSessionId = trackingSessionId;
+  const finalStats = { ...trackingStats }; //congelar datos
+
+  let imageUri = null;
+
+  //CAPTURAR ÚLTIMO FRAME
+  try {
+    if (isWeb) {
+      const blob = await captureWebFrame();
+      if (blob) {
+        imageUri = URL.createObjectURL(blob);
+      }
+    } else {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.6,
+        skipProcessing: true,
+      });
+      imageUri = photo.uri;
+    }
+  } catch (e) {
+    console.log('No se pudo capturar frame final');
+  }
+
+  //GENERAR + GUARDAR REPORTE
+  let reportId = null;
+  try {
+    reportId = await generateAndStoreReport({
+      imageUri,
+      stats: finalStats,
+    });
+  } catch (e) {
+    console.log('Error guardando reporte', e);
+  }
+
+  //LIMPIAR ESTADOS LOCALES
+  setIsTracking(false);
+  setTrackingSessionId(null);
+  setDoorBoxes([]);
+  setDoorCoordsRaw(null);
+  setTrackingStats({ entradas: 0, salidas: 0, personas_dentro: 0 });
+  setBoxes([]);
+  setFrameCounter(0);
+  setIsDetecting(false);
+  setShowTrackingModal(false);
+
+  //NAVEGAR A ReportScreen
+  if (reportId) {
+    navigation.navigate('ReportScreen', { reportId });
+  }
+
+  //CERRAR SESIÓN BACKEND
+  if (currentSessionId) {
+    try {
+      await axios.delete(
+        `${SERVER_URL}/predict/tracking/session/${currentSessionId}`,
+        { timeout: 1500 }
+      );
+    } catch {}
+  }
+
+  setIsProcessing(false);
+  console.log('Tracking detenido completamente');
+};
+
+  const finalizeTracking = async (sessionId) => {
+  try {
+    let file;
+
+    // Capturar último frame
+    if (isWeb) {
+      const blob = await captureWebFrame();
+      if (!blob) return;
+      file = new File([blob], 'final_frame.jpg', { type: 'image/jpeg' });
+    } else {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.6,
+        skipProcessing: true,
+        exif: false
+      });
+      file = {
+        uri: photo.uri,
+        type: 'image/jpeg',
+        name: 'final_frame.jpg'
+      };
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    await axios.post(
+      `${SERVER_URL}/predict/tracking/session/${sessionId}/finalize`,
+      formData,
+      {
+        params: {
+          entradas: trackingStats.entradas,
+          salidas: trackingStats.salidas,
+          personas_dentro: trackingStats.personas_dentro,
+          final_timestamp: new Date().toISOString()
+        },
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 5000
+      }
+    );
+
+    console.log('Reporte final enviado');
+  } catch (err) {
+    console.log('Error enviando reporte final:', err);
+  }
+};
+
 
   const startSendingFrames = (sessionId) => {
     let frameNumber = 0;
